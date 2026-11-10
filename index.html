@@ -302,7 +302,7 @@ const ic=(n,cls='')=>`<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="tr
 
 /* ====================== ESTADO ====================== */
 const S={players:[],matches:{},meta:{playersAt:0,deleted:{}},ready:false,slow:false,mode:'local',canWrite:true};
-const ui={gh:(()=>{const g={owner:'',repo:'',token:'',path:'data.json'};try{if(/\.github\.io$/.test(location.hostname)){g.owner=location.hostname.split('.')[0];g.repo=location.pathname.split('/')[1]||''}}catch(e){}return g})(),view:'inicio',live:{j:null,form:{half:1,min:10,out:[],inn:[]},open:false,prov:false},
+const ui={gh:(()=>{const g={owner:'',repo:'',token:'',path:'data.json'};try{if(/\.github\.io$/.test(location.hostname)){g.owner=location.hostname.split('.')[0];g.repo=location.pathname.split('/')[1]||''}}catch(e){}return g})(),view:'inicio',live:{j:null,form:{half:1,min:'',out:[],inn:[]},open:false,prov:false},
   manual:{j:null,draft:null,loaded:null},charts:{tab:'partido',sel:null,slot:{},basis:'total'},medias:{tab:'conv'},cal:{filter:'all'},sheet:null,toast:null};
 const VIEWS=['inicio','partido','calendario','medias','graficos','manual','plantilla','datos'];
 const TITLES={inicio:'Sant Cugat FC',partido:'Registrar partido',calendario:'Calendario',medias:'Medias',graficos:'Gráficos',manual:'Minutos manuales',plantilla:'Plantilla',datos:'Datos y copias'};
@@ -552,20 +552,20 @@ function eventsList(m){
 function canOut(m,pid,t){const tl=timelineOf(m.events||[],pid).filter(x=>x.t<=t);return !tl.length||tl[tl.length-1].type==='in'}
 function canIn(m,pid,t){const tl=timelineOf(m.events||[],pid).filter(x=>x.t<=t);return !tl.length||tl[tl.length-1].type==='out'}
 function changeForm(m){
-  const F=ui.live.form;const t=(F.half===1?F.min:HALF+F.min);
+  const F=ui.live.form;const hasMin=F.min!==''&&F.min!=null;const t=hasMin?(F.half===1?F.min:HALF+F.min):null;
   const list=activeConv(m);
   const mk=(kind)=>list.map(p=>{const sel=(kind==='out'?F.out:F.inn).includes(p.id);const other=(kind==='out'?F.inn:F.out).includes(p.id);
-    const ok=kind==='out'?canOut(m,p.id,t):canIn(m,p.id,t);
+    const ok=t==null?true:(kind==='out'?canOut(m,p.id,t):canIn(m,p.id,t));
     return `<button class="chip ${kind} ${sel?'sel':''}" data-act="pickp" data-k="${kind}" data-id="${p.id}" ${(!ok||other)?'disabled':''} aria-pressed="${sel}"><span class="n">${p.num??''}</span><span class="nm">${esc(p.name)}</span></button>`}).join('');
   return `<div class="card" style="background:var(--surface-2);border:0">
    <div class="seg" role="group" aria-label="Parte"><button data-act="half" data-h="1" aria-pressed="${F.half===1}">1ª parte</button><button data-act="half" data-h="2" aria-pressed="${F.half===2}">2ª parte</button></div>
-   <div class="row" style="margin:14px 0 6px"><span class="lbl">Minuto</span><span class="spacer"></span><span class="pill acc">Minuto ${t} del partido</span></div>
-   <div class="stepper"><button data-act="step" data-d="-1" aria-label="Un minuto menos">${ic('minus')}</button><input id="fmin" type="number" inputmode="numeric" min="0" max="35" value="${F.min}" data-bind="fmin" aria-label="Minuto de la parte"><button data-act="step" data-d="1" aria-label="Un minuto más">${ic('plus')}</button>
-   <div class="quick">${[0,5,10,15,20,25,30,35].map(x=>`<button data-act="setmin" data-m="${x}">${x}'</button>`).join('')}</div></div>
+   <div class="row" style="margin:14px 0 6px"><span class="lbl">Minuto</span><span class="spacer"></span><span id="fpill" class="pill ${hasMin?'acc':'warn'}">${hasMin?'Minuto '+t+' del partido':'Indica el minuto'}</span></div>
+   <div class="stepper"><button data-act="step" data-d="-1" aria-label="Un minuto menos">${ic('minus')}</button><input id="fmin" type="number" inputmode="numeric" min="0" max="35" value="${F.min}" placeholder="min" data-bind="fmin" aria-label="Minuto de la parte"><button data-act="step" data-d="1" aria-label="Un minuto más">${ic('plus')}</button>
+   </div>
    <div class="two" style="margin-top:14px"><div><div class="lbl" style="margin-bottom:8px">Salen (${F.out.length})</div><div class="chips" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${mk('out')}</div></div>
    <div><div class="lbl" style="margin-bottom:8px">Entran (${F.inn.length})</div><div class="chips" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${mk('inn')}</div></div></div>
    ${F.out.length!==F.inn.length&&(F.out.length||F.inn.length)?`<div class="note warn" style="margin-top:12px">Salen ${F.out.length} y entran ${F.inn.length}. Puedes guardarlo igualmente.</div>`:''}
-   <div class="row" style="margin-top:14px"><button class="btn" data-act="savechange" ${F.out.length||F.inn.length?'':'disabled'}>${ic('check')} Guardar cambio</button><button class="btn ghost" data-act="cancelchange">Cancelar</button></div></div>`;
+   <div class="row" style="margin-top:14px"><button class="btn" data-act="savechange" ${hasMin&&(F.out.length||F.inn.length)?'':'disabled'}>${ic('check')} Guardar cambio</button><button class="btn ghost" data-act="cancelchange">Cancelar</button></div></div>`;
 }
 function playedSummary(j){
   const m=mat(j);const mins=m.minutes||{};const tot=sumOf(mins);
@@ -636,7 +636,7 @@ function lineBlock(C,tab,js){
   const tbl=`<details><summary>Ver datos en tabla</summary><div class="tbl-wrap"><table><thead><tr><th class="l">Jugador</th>${js.map(j=>`<th>J${j}</th>`).join('')}</tr></thead><tbody>${C.sel.map(id=>{const p=pById(id);const st=stats(p);const vals=tab==='partido'?st.series:cumSeries(st,C.basis);return `<tr><td class="l name">${esc(p.name)}</td>${vals.map(v=>`<td class="num">${v==null?'—':(tab==='partido'?v:fmt1(v))}</td>`).join('')}</tr>`}).join('')}</tbody></table></div></details>`;
   return `<section class="card"><h2>${title}</h2><p class="sub">${sub}</p>
    ${tab==='acum'?`<div class="seg" style="margin-bottom:12px;max-width:460px"><button data-act="basis" data-b="total" aria-pressed="${C.basis==='total'}">Partidos totales</button><button data-act="basis" data-b="conv" aria-pressed="${C.basis==='conv'}">Convocatorias</button></div>`:''}
-   <div class="row" style="margin-bottom:12px"><span class="lbl">Jugadores</span><span class="spacer"></span><button class="btn ghost sm" data-act="gnone">Ninguno</button><button class="btn ghost sm" data-act="gdef">Por defecto</button><button class="btn ghost sm" data-act="gtop">Top 4</button></div>
+   <div class="row" style="margin-bottom:12px"><span class="lbl">Jugadores</span><span class="spacer"></span><button class="btn ghost sm" data-act="gnone">Ninguno</button></div>
    ${legendChips(C)}
    ${C.sel.length?`<div class="chartbox" style="margin-top:14px"><canvas id="cv" role="img" aria-label="${title}"></canvas></div>${tbl}`:`<div class="note" style="margin-top:14px">Elige al menos un jugador para ver el gráfico. Máximo 8 a la vez.</div>`}</section>`;
 }
@@ -760,7 +760,7 @@ const A={
  veil:(t,e)=>{if(e.target===t){ui.sheet=null;render()}},
  closesheet:()=>{ui.sheet=null;render()},
  seed:()=>{Store.savePlayers(clone(SEED.players));Object.values(SEED.matches).forEach(m=>Store.saveMatch(m));toast('Datos cargados')},
- openlive:t=>{ui.live.j=+t.dataset.j;ui.live.open=false;ui.live.form={half:1,min:10,out:[],inn:[]};ui.sheet=null;go('partido')},
+ openlive:t=>{ui.live.j=+t.dataset.j;ui.live.open=false;ui.live.form={half:1,min:'',out:[],inn:[]};ui.sheet=null;go('partido')},
  picker:()=>{ui.sheet={type:'picker'};render()},
  pickj:t=>{ui.live.j=+t.dataset.j;ui.sheet=null;ui.live.open=false;render()},
  calsheet:t=>{ui.sheet={type:'cal',j:+t.dataset.j};render()},
@@ -768,13 +768,12 @@ const A={
  cyc:t=>{const j=liveJ(),m=getLive(j),id=t.dataset.id;const cur=convOf(m,id);
    if(cur==='c'&&((m.events||[]).some(e=>(e.out||[]).includes(id)||(e.inn||[]).includes(id)))){toast('Tiene cambios registrados: bórralos antes de desconvocarle.');return}
    const nx={c:'d',d:'n',n:'c'}[cur];m.conv=m.conv||{};if(nx==='c')delete m.conv[id];else m.conv[id]=nx;setLive(m);render()},
- newchange:()=>{ui.live.open=true;ui.live.form.out=[];ui.live.form.inn=[];render()},
+ newchange:()=>{ui.live.open=true;ui.live.form.out=[];ui.live.form.inn=[];ui.live.form.min='';render()},
  cancelchange:()=>{ui.live.open=false;render()},
  half:t=>{ui.live.form.half=+t.dataset.h;render()},
  step:t=>{const F=ui.live.form;F.min=Math.max(0,Math.min(HALF,(+F.min||0)+(+t.dataset.d)));pruneForm();render()},
- setmin:t=>{ui.live.form.min=+t.dataset.m;pruneForm();render()},
  pickp:t=>{const F=ui.live.form,id=t.dataset.id,k=t.dataset.k;const arr=F[k];const i=arr.indexOf(id);if(i>=0)arr.splice(i,1);else arr.push(id);render()},
- savechange:()=>{const F=ui.live.form,j=liveJ(),m=getLive(j);
+ savechange:()=>{const F=ui.live.form,j=liveJ(),m=getLive(j);if(F.min===''||F.min==null){toast('Indica el minuto del cambio.');return}
    const ev={h:F.half,m:Math.max(0,Math.min(HALF,+F.min||0)),out:[...F.out],inn:[...F.inn]};
    const test=[...(m.events||[]),ev];
    for(const id of [...ev.out,...ev.inn]){if(!timelineValid(timelineOf(test,id))){toast(`${pById(id)?.name||'Un jugador'} no puede salir o entrar en ese minuto.`);return}}
@@ -801,8 +800,6 @@ const A={
  basis:t=>{ui.charts.basis=t.dataset.b;render()},
  gsel:t=>{const C=ui.charts,id=t.dataset.id;const i=C.sel.indexOf(id);if(i>=0)C.sel.splice(i,1);else{if(C.sel.length>=8){toast('Máximo 8 jugadores a la vez.');return}C.sel.push(id)}render()},
  gnone:()=>{ui.charts.sel=[];render()},
- gtop:()=>{ui.charts.sel=topSel();render()},
- gdef:()=>{ui.charts.sel=defaultSel();render()},
  padd:()=>{const nm=document.getElementById('newname').value.trim(),nu=document.getElementById('newnum').value;if(!nm){toast('Escribe el nombre del jugador.');return}
    const n=nu===''?null:Number(nu);if(n!=null&&S.players.some(p=>p.num===n)){toast(`El dorsal ${n} ya está en uso.`);return}
    const id='p'+(n!=null?n:Date.now().toString(36));if(pById(id)){toast('Ese jugador ya existe.');return}
@@ -841,16 +838,18 @@ async function ghFinish(c){
     if(remHas&&hasLocal)ask('Ya hay datos en GitHub y en este dispositivo','Se usarán los de GitHub y los de este dispositivo se sustituirán. Si quieres conservarlos, guarda antes una copia de seguridad.','Usar los de GitHub',go,true);
     else await go();
   }catch(e){toast(ghMsg(e))}}
-function pruneForm(){const F=ui.live.form,j=liveJ(),m=getLive(j),t=F.half===1?F.min:HALF+F.min;F.out=F.out.filter(id=>canOut(m,id,t));F.inn=F.inn.filter(id=>canIn(m,id,t))}
+function pruneForm(){const F=ui.live.form,j=liveJ(),m=getLive(j);if(F.min===''||F.min==null)return;const t=F.half===1?F.min:HALF+F.min;F.out=F.out.filter(id=>canOut(m,id,t));F.inn=F.inn.filter(id=>canIn(m,id,t))}
 
 document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t)return;const a=A[t.dataset.act];if(a){e.preventDefault();a(t,e)}});
 document.addEventListener('input',e=>{const t=e.target;if(!t.dataset||!t.dataset.bind)return;
   if(t.dataset.bind==='gh'){ui.gh[t.dataset.k]=t.value;return}
   if(t.dataset.bind==='mi'){ui.manual.draft[t.dataset.id]=t.value;const m=document.getElementById('mtot');if(m)m.innerHTML=manualTotal()}
-  if(t.dataset.bind==='fmin'){ui.live.form.min=Math.max(0,Math.min(HALF,Math.round(+t.value||0)))}});
+  if(t.dataset.bind==='fmin'){const F=ui.live.form;F.min=t.value===''?'':Math.max(0,Math.min(HALF,Math.round(+t.value||0)));
+    const has=F.min!=='';const b=document.querySelector('[data-act=savechange]');if(b)b.disabled=!(has&&(F.out.length||F.inn.length));
+    const pl=document.getElementById('fpill');if(pl){pl.className='pill '+(has?'acc':'warn');pl.textContent=has?'Minuto '+(F.half===1?F.min:HALF+F.min)+' del partido':'Indica el minuto'}}});
 document.addEventListener('change',e=>{const t=e.target;if(!t.dataset||!t.dataset.bind)return;
   if(t.dataset.bind==='msel'){ui.manual.j=+t.value;ui.manual.loaded=null;render()}
-  if(t.dataset.bind==='fmin'){pruneForm();render()}
+  if(t.dataset.bind==='fmin'){pruneForm();setTimeout(()=>{if(!(document.activeElement&&document.activeElement.id==='fmin'))render()},300)}
   if(t.dataset.bind==='pname'){const v=t.value.trim();if(v)Store.savePlayers(S.players.map(p=>p.id===t.dataset.id?{...p,name:v}:p));else render()}
   if(t.dataset.bind==='pnum'){const v=t.value===''?null:Number(t.value);if(v!=null&&S.players.some(p=>p.num===v&&p.id!==t.dataset.id)){toast(`El dorsal ${v} ya está en uso.`);render();return}Store.savePlayers(S.players.map(p=>p.id===t.dataset.id?{...p,num:v}:p));render()}
   if(t.dataset.bind==='restore'){const f=t.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||d.app!=='scfc-2026-27'||!Array.isArray(d.players))throw 0;
