@@ -36,7 +36,7 @@
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.4;
-  padding-block:0 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:calc(env(safe-area-inset-top,0px) + 14px) 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   -webkit-tap-highlight-color:transparent}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:30}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
@@ -63,7 +63,7 @@ svg.ic{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-
 .crestbtn img{width:30px;height:30px}
 
 /* hero */
-.hero{margin-top:14px;border-radius:26px;padding:20px;color:#fff;position:relative;overflow:hidden;
+.hero{margin-top:8px;border-radius:26px;padding:20px;color:#fff;position:relative;overflow:hidden;
   background:
    linear-gradient(115deg,rgba(0,0,0,.0) 62%,rgba(226,176,59,.20) 62%,rgba(226,176,59,.20) 66%,rgba(0,0,0,0) 66%),
    linear-gradient(135deg,var(--accent-2),var(--accent) 70%)}
@@ -73,7 +73,7 @@ svg.ic{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-
 .hero h1 span{color:var(--gold);display:block}
 .hero p{margin:8px 0 0;font-size:14px;opacity:.88}
 .next{margin-top:18px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.18);border-radius:18px;padding:12px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.next .lbl{font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.85;width:100%}
+.next .lbl{color:#fff;font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.85;width:100%}
 .next .teams{display:flex;align-items:center;gap:10px;width:100%;min-width:0}
 .next .btn{width:100%}
 .next .teams img{width:40px;height:40px}
@@ -102,6 +102,7 @@ svg.ic{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-
 .tile.primary p,.tile.primary .tag{color:rgba(255,255,255,.86)}
 
 /* generic blocks */
+.stick{position:sticky;top:calc(env(safe-area-inset-top,0px) + 65px);z-index:19;background:var(--bg);padding-block:6px;margin-block:-6px;border-bottom:1px solid transparent}
 .page{padding-top:16px;display:flex;flex-direction:column;gap:16px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px}
 .card h2{font-size:22px;text-transform:uppercase;margin-bottom:4px}
@@ -173,6 +174,14 @@ td.name{white-space:normal;font-weight:500}
 .rank{font-family:var(--font-display);font-weight:700;font-size:18px;color:var(--ink-3);width:34px}
 .rank.top{color:var(--accent-ink)}
 .barcell{width:34%;min-width:90px}
+th.c,td.c{text-align:center}
+table.rk td{padding-block:5px}table.rk th{padding-block:6px}
+table.rk td.name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0;width:100%;font-size:14px}
+table.rk .dn{display:inline-block;min-width:20px;color:var(--ink-3);font-size:12px;font-weight:600}
+table.rk .rank{font-size:16px;width:24px}table.rk .bigv{font-size:18px}
+table.rk tr.hl td{background:var(--accent-soft)}
+table.rk tr.hl td:first-child{border-radius:8px 0 0 8px}table.rk tr.hl td:last-child{border-radius:0 8px 8px 0}
+.two-tables .card{padding:12px}.two-tables .card h2{font-size:18px;margin:0 0 2px}.two-tables .card .sub{font-size:12px;margin:0 0 8px}
 .bar-t{height:10px;border-radius:6px;background:var(--surface-2);overflow:hidden}
 .bar-t i{display:block;height:100%;border-radius:6px;background:var(--accent)}
 .bigv{font-family:var(--font-display);font-weight:700;font-size:22px}
@@ -309,7 +318,10 @@ function stats(p){
   const N=js.length;
   return {p,total,conv,N,avgConv:conv?total/conv:null,avgTot:N?total/N:0,pctConv:conv?total/(conv*MIN):null,pctTot:N?total/(N*MIN):0,series,js};
 }
-function visiblePlayers(){return orderedPlayers().filter(p=>p.active!==false||stats(p).conv>0)}
+function visiblePlayers(){return orderedPlayers().filter(p=>p.active!==false)}
+const norm=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+const FOCUS=['alex marquez','pau marquez'];
+const isFocus=p=>FOCUS.includes(norm(p.name));
 function cumSeries(st,basis){
   let sum=0,c=0;return st.series.map((v,i)=>{if(v!=null){sum+=v;c++}
     if(basis==='total')return sum/(i+1);return c?sum/c:null})
@@ -574,7 +586,7 @@ function viewCalendario(){
     return `<button class="calrow ${nm&&nm.j===f.j?'next-up':''}" data-act="calsheet" data-j="${f.j}"><span class="jn"><small>J</small>${f.j}</span>
     <span class="tm">${img(a)}${img(b)}<span class="tx"><b>${esc(TEAMS[a].name)} – ${esc(TEAMS[b].name)}</b><span>${esc(fdate(f.date))} · ${f.home?'casa':'fuera'}</span></span></span>
     <span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="pill ${cls}">${lbl}</span>${sum!=null?`<span class="pill ${sum===TEAM_TOTAL?'':'warn'}">${sum}'</span>`:''}</span></button>`}).join('');
-  return `<div class="page"><div class="seg" role="group" aria-label="Filtro">${[['all','Todos'],['played','Jugados'],['pending','Pendientes']].map(([k,l])=>`<button data-act="calf" data-f="${k}" aria-pressed="${filt===k}">${l}</button>`).join('')}</div>
+  return `<div class="page"><div class="stick"><div class="seg" role="group" aria-label="Filtro">${[['all','Todos'],['played','Jugados'],['pending','Pendientes']].map(([k,l])=>`<button data-act="calf" data-f="${k}" aria-pressed="${filt===k}">${l}</button>`).join('')}</div></div>
   <div class="card cal" style="padding:8px 12px">${rows||'<p class="muted" style="padding:16px">No hay partidos en este filtro.</p>'}</div>
   <p class="muted" style="font-size:12px;margin:0">El número bajo el estado es la suma de minutos del partido. Con 11 jugadores en el campo debería ser ${TEAM_TOTAL}'. Si no cuadra, revisa los minutos.</p></div>`;
 }
@@ -586,21 +598,22 @@ function rankTable(kind){
   rows.sort((a,b)=>{const x=a[key]??-1,y=b[key]??-1;return y-x||b.total-a.total||a.p.name.localeCompare(b.p.name)});
   const N=rows[0]?.N||0;
   const pcKey=kind==='conv'?'pctConv':'pctTot';
-  return `<div class="tbl-wrap"><table><thead><tr><th class="l">#</th><th class="l">Jugador</th><th>Media</th><th class="barcell"></th><th>%</th><th>${kind==='conv'?'Conv.':'Partidos'}</th><th>Total</th></tr></thead><tbody>${
+  return `<div class="tbl-wrap"><table class="rk"><thead><tr><th class="l">#</th><th class="l">Jugador</th><th class="c">Media</th><th class="barcell"></th><th class="c">%</th>${kind==='conv'?'<th class="c">Conv.</th>':''}<th class="c">Total</th></tr></thead><tbody>${
   rows.map((r,i)=>{const v=r[key];const w=v==null?0:Math.min(100,v/MIN*100);
-   return `<tr><td class="l rank ${i<3&&v!=null?'top':''}">${i+1}</td><td class="l name">${esc(r.p.name)}<div class="muted" style="font-size:12px">${r.p.num!=null?'Nº '+r.p.num:''}</div></td><td class="bigv num">${fmt1(v)}</td><td class="barcell"><div class="bar-t"><i style="width:${w}%"></i></div></td><td class="num">${pct(r[pcKey])}</td><td class="num">${kind==='conv'?r.conv:N}</td><td class="num">${r.total}'</td></tr>`}).join('')}</tbody></table></div>`;
+   return `<tr class="${isFocus(r.p)?'hl':''}"><td class="l rank ${i<3&&v!=null?'top':''}">${i+1}</td><td class="l name"><span class="dn">${r.p.num??''}</span>${esc(r.p.name)}</td><td class="c bigv num">${fmt1(v)}</td><td class="barcell"><div class="bar-t"><i style="width:${w}%"></i></div></td><td class="c num">${pct(r[pcKey])}</td>${kind==='conv'?`<td class="c num">${r.conv}</td>`:''}<td class="c num">${r.total}'</td></tr>`}).join('')}</tbody></table></div>`;
 }
 function viewMedias(){
   const N=playedJs().length;const t=ui.medias.tab;
   return `<div class="page"><div class="row"><span class="pill acc">${N} partidos jugados</span><span class="muted" style="font-size:13px">Ordenado de mayor a menor media</span></div>
-  <div class="seg only-narrow-seg" style="max-width:520px"><button data-act="mtab" data-t="conv" aria-pressed="${t==='conv'}">Sobre convocatorias</button><button data-act="mtab" data-t="total" aria-pressed="${t==='total'}">Sobre partidos totales</button></div>
+  <div class="stick"><div class="seg only-narrow-seg" style="max-width:520px"><button data-act="mtab" data-t="conv" aria-pressed="${t==='conv'}">Sobre convocatorias</button><button data-act="mtab" data-t="total" aria-pressed="${t==='total'}">Sobre partidos totales</button></div></div>
   <div class="two-tables"><section class="card ${t==='conv'?'':'hide'}"><h2>Media sobre convocatorias</h2><p class="sub">Minutos jugados ÷ partidos en los que el jugador estaba convocado. No cuenta los partidos en los que no fue convocado.</p>${rankTable('conv')}</section>
   <section class="card ${t==='total'?'':'hide'}"><h2>Media sobre partidos totales</h2><p class="sub">Minutos jugados ÷ partidos disputados por el equipo (${N}).</p>${rankTable('total')}</section></div></div>`;
 }
 
 /* ---------- Gráficos ---------- */
 function palette(){const cs=getComputedStyle(document.documentElement);const g=n=>cs.getPropertyValue(n).trim();return {s:[1,2,3,4,5,6,7,8].map(i=>g('--series-'+i)),ink:g('--ink'),ink2:g('--ink-2'),grid:g('--grid'),accent:g('--accent'),surface:g('--surface'),line:g('--line')}}
-function defaultSel(){return visiblePlayers().map(stats).sort((a,b)=>b.total-a.total).slice(0,4).map(s=>s.p.id)}
+function topSel(){return visiblePlayers().map(stats).sort((a,b)=>b.total-a.total).slice(0,4).map(s=>s.p.id)}
+function defaultSel(){const f=visiblePlayers().filter(isFocus).map(p=>p.id);return f.length?f:topSel()}
 function selSlots(){const C=ui.charts;if(!C.sel)C.sel=defaultSel();
   C.sel=C.sel.filter(id=>pById(id));
   Object.keys(C.slot).forEach(id=>{if(!C.sel.includes(id))delete C.slot[id]});
@@ -613,7 +626,7 @@ function viewGraficos(){
   else if(tab==='partido'||tab==='acum')body=lineBlock(C,tab,js);
   else if(tab==='calor')body=heatBlock(js);
   else body=totalBlock(js);
-  return `<div class="page"><div class="seg" role="tablist">${tabs.map(([k,l])=>`<button data-act="gtab" data-t="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}</div>${body}</div>`;
+  return `<div class="page"><div class="stick"><div class="seg" role="tablist">${tabs.map(([k,l])=>`<button data-act="gtab" data-t="${k}" aria-pressed="${tab===k}">${l}</button>`).join('')}</div></div>${body}</div>`;
 }
 function legendChips(C){return `<div class="legend" role="group" aria-label="Jugadores">${visiblePlayers().map(p=>{const on=C.sel.includes(p.id);const col=on?`var(--series-${C.slot[p.id]+1})`:'var(--line)';
   return `<button class="lchip" data-act="gsel" data-id="${p.id}" aria-pressed="${on}"><span class="dot" style="background:${col}"></span>${esc(p.name)}</button>`}).join('')}</div>`}
@@ -623,7 +636,7 @@ function lineBlock(C,tab,js){
   const tbl=`<details><summary>Ver datos en tabla</summary><div class="tbl-wrap"><table><thead><tr><th class="l">Jugador</th>${js.map(j=>`<th>J${j}</th>`).join('')}</tr></thead><tbody>${C.sel.map(id=>{const p=pById(id);const st=stats(p);const vals=tab==='partido'?st.series:cumSeries(st,C.basis);return `<tr><td class="l name">${esc(p.name)}</td>${vals.map(v=>`<td class="num">${v==null?'—':(tab==='partido'?v:fmt1(v))}</td>`).join('')}</tr>`}).join('')}</tbody></table></div></details>`;
   return `<section class="card"><h2>${title}</h2><p class="sub">${sub}</p>
    ${tab==='acum'?`<div class="seg" style="margin-bottom:12px;max-width:460px"><button data-act="basis" data-b="total" aria-pressed="${C.basis==='total'}">Partidos totales</button><button data-act="basis" data-b="conv" aria-pressed="${C.basis==='conv'}">Convocatorias</button></div>`:''}
-   <div class="row" style="margin-bottom:12px"><span class="lbl">Jugadores</span><span class="spacer"></span><button class="btn ghost sm" data-act="gnone">Ninguno</button><button class="btn ghost sm" data-act="gtop">Top 4</button></div>
+   <div class="row" style="margin-bottom:12px"><span class="lbl">Jugadores</span><span class="spacer"></span><button class="btn ghost sm" data-act="gnone">Ninguno</button><button class="btn ghost sm" data-act="gdef">Por defecto</button><button class="btn ghost sm" data-act="gtop">Top 4</button></div>
    ${legendChips(C)}
    ${C.sel.length?`<div class="chartbox" style="margin-top:14px"><canvas id="cv" role="img" aria-label="${title}"></canvas></div>${tbl}`:`<div class="note" style="margin-top:14px">Elige al menos un jugador para ver el gráfico. Máximo 8 a la vez.</div>`}</section>`;
 }
@@ -788,7 +801,8 @@ const A={
  basis:t=>{ui.charts.basis=t.dataset.b;render()},
  gsel:t=>{const C=ui.charts,id=t.dataset.id;const i=C.sel.indexOf(id);if(i>=0)C.sel.splice(i,1);else{if(C.sel.length>=8){toast('Máximo 8 jugadores a la vez.');return}C.sel.push(id)}render()},
  gnone:()=>{ui.charts.sel=[];render()},
- gtop:()=>{ui.charts.sel=defaultSel();render()},
+ gtop:()=>{ui.charts.sel=topSel();render()},
+ gdef:()=>{ui.charts.sel=defaultSel();render()},
  padd:()=>{const nm=document.getElementById('newname').value.trim(),nu=document.getElementById('newnum').value;if(!nm){toast('Escribe el nombre del jugador.');return}
    const n=nu===''?null:Number(nu);if(n!=null&&S.players.some(p=>p.num===n)){toast(`El dorsal ${n} ya está en uso.`);return}
    const id='p'+(n!=null?n:Date.now().toString(36));if(pById(id)){toast('Ese jugador ya existe.');return}
