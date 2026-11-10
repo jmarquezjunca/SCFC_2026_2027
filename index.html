@@ -536,7 +536,7 @@ function viewPartido(){
   <section class="card"><h2>1 · Convocatoria</h2><p class="sub">Toca un jugador para cambiar su estado: convocado → desconvocado → suplente que no juega. Quien está convocado y no tiene cambios juega los 70'; marca como «suplente · no juega» a los que no entren.</p>
    <div class="chips">${chips}</div>
    <div class="row" style="margin-top:12px"><span class="pill good">${cnt.c} convocados</span><span class="pill">${cnt.d} desconvocados</span>${cnt.n?`<span class="pill warn">${cnt.n} sin jugar</span>`:''}</div></section>
-  <section class="card"><h2>2 · Cambios</h2><p class="sub">Indica parte, minuto, quién sale y quién entra. La 2ª parte, minuto 10 equivale al minuto 45 del partido.</p>
+  <section class="card"><h2>2 · Cambios</h2><p class="sub">Indica parte, minuto, quién entra y quién sale. La 2ª parte, minuto 10 equivale al minuto 45 del partido.</p>
    ${ui.live.open?changeForm(m):`<button class="btn" data-act="newchange">${ic('plus')} Añadir cambio</button>`}
    <div style="margin-top:12px">${eventsList(m)}</div></section>
   <section class="card"><div class="row"><h2 style="margin:0">3 · Minutos</h2><span class="spacer"></span><button class="btn ghost sm" data-act="toggleprov">${ui.live.prov?'Ocultar':'Ver provisional'}</button></div>
@@ -547,7 +547,7 @@ function viewPartido(){
 function eventTimeLabel(e){return `${e.h}ª parte · ${e.m}'`}
 function eventsList(m){
   if(!(m.events||[]).length)return `<p class="muted" style="margin:0;font-size:14px">Aún no hay cambios. Si no registras ninguno, todos los convocados jugarán 70'.</p>`;
-  return sortedEvents(m.events).map(e=>`<div class="ev"><div class="when">${eventTimeLabel(e)}<small>min. ${e.t} del partido</small></div><div class="who">${(e.out||[]).length?`<div><span class="o">Sale:</span> ${e.out.map(id=>esc(pById(id)?.name||id)).join(', ')}</div>`:''}${(e.inn||[]).length?`<div><span class="i">Entra:</span> ${e.inn.map(id=>esc(pById(id)?.name||id)).join(', ')}</div>`:''}</div><button class="iconbtn" style="width:40px;height:40px" data-act="delev" data-i="${e.i}" aria-label="Borrar cambio">${ic('trash')}</button></div>`).join('');
+  return sortedEvents(m.events).map(e=>`<div class="ev"><div class="when">${eventTimeLabel(e)}<small>min. ${e.t} del partido</small></div><div class="who">${(e.inn||[]).length?`<div><span class="i">Entra:</span> ${e.inn.map(id=>esc(pById(id)?.name||id)).join(', ')}</div>`:''}${(e.out||[]).length?`<div><span class="o">Sale:</span> ${e.out.map(id=>esc(pById(id)?.name||id)).join(', ')}</div>`:''}</div><button class="iconbtn" style="width:40px;height:40px" data-act="delev" data-i="${e.i}" aria-label="Borrar cambio">${ic('trash')}</button></div>`).join('');
 }
 function canOut(m,pid,t){const tl=timelineOf(m.events||[],pid).filter(x=>x.t<=t);return !tl.length||tl[tl.length-1].type==='in'}
 function canIn(m,pid,t){const tl=timelineOf(m.events||[],pid).filter(x=>x.t<=t);return !tl.length||tl[tl.length-1].type==='out'}
@@ -562,8 +562,8 @@ function changeForm(m){
    <div class="row" style="margin:14px 0 6px"><span class="lbl">Minuto</span><span class="spacer"></span><span id="fpill" class="pill ${hasMin?'acc':'warn'}">${hasMin?'Minuto '+t+' del partido':'Indica el minuto'}</span></div>
    <div class="stepper"><button data-act="step" data-d="-1" aria-label="Un minuto menos">${ic('minus')}</button><input id="fmin" type="number" inputmode="numeric" min="0" max="35" value="${F.min}" placeholder="min" data-bind="fmin" aria-label="Minuto de la parte"><button data-act="step" data-d="1" aria-label="Un minuto más">${ic('plus')}</button>
    </div>
-   <div class="two" style="margin-top:14px"><div><div class="lbl" style="margin-bottom:8px">Salen (${F.out.length})</div><div class="chips" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${mk('out')}</div></div>
-   <div><div class="lbl" style="margin-bottom:8px">Entran (${F.inn.length})</div><div class="chips" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${mk('inn')}</div></div></div>
+   <div class="two" style="margin-top:14px"><div><div class="lbl" style="margin-bottom:8px">Entran (${F.inn.length})</div><div class="chips" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${mk('inn')}</div></div>
+   <div><div class="lbl" style="margin-bottom:8px">Salen (${F.out.length})</div><div class="chips" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${mk('out')}</div></div></div>
    ${F.out.length!==F.inn.length&&(F.out.length||F.inn.length)?`<div class="note warn" style="margin-top:12px">Salen ${F.out.length} y entran ${F.inn.length}. Puedes guardarlo igualmente.</div>`:''}
    <div class="row" style="margin-top:14px"><button class="btn" data-act="savechange" ${hasMin&&(F.out.length||F.inn.length)?'':'disabled'}>${ic('check')} Guardar cambio</button><button class="btn ghost" data-act="cancelchange">Cancelar</button></div></div>`;
 }
