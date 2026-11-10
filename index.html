@@ -273,6 +273,7 @@ const TEAMS = {
 const KEY = {'NASTIC TARRAGONA':'nastic','MERCANTIL':'mercantil','DAMM':'damm','GIRONA':'girona','SEGRE':'segre','HOSPITALET':'hospitalet','IGUALADA':'igualada','BARÇA':'barca','CORNELLÀ':'cornella','VIC':'vic','REUS':'reus','NASTIC MANRESA':'manresa','SANT JUST':'santjust','ESPANYOL':'espanyol','MASNOU':'masnou'};
 const FIX = HEADS.map((head,i)=>{const [a,b]=head.split(' - ').map(s=>s.trim());const home=a==='SC';return {j:i+1,home,rival:KEY[home?b:a],head,date:DATES[i]}});
 const FJ = {}; FIX.forEach(f=>FJ[f.j]=f);
+const APP_VERSION='10/11 08:15';
 const MIN=70, HALF=35, TEAM_TOTAL=11*70;
 const pad2=n=>String(n).padStart(2,'0');
 const crest=k=>'data:image/webp;base64,'+CRESTS[k];
@@ -513,7 +514,7 @@ function viewInicio(){
   return `<div class="page"><section class="hero"><div class="hero-top"><img class="big" src="${crest('sc')}" alt="Escudo del Sant Cugat FC"><div><h1>Sant Cugat FC<span>2026/2027</span></h1><p>Control de minutos · Divisió d'Honor Infantil</p></div></div>${nxt}</section>
   ${S.canWrite?'':'<div class="note warn">Solo lectura: puedes consultar los datos, pero no modificarlos.</div>'}
   <nav class="pad" aria-label="Opciones">${tiles.map(([id,icn,t,d,tag,cls])=>`<button class="tile ${cls||''}" data-act="${id==='excel'?'excel':'go'}" data-v="${id}"><span class="glyph">${ic(icn)}</span><h2>${t}</h2><p>${d}</p><span class="tag">${tag(anyLive)}</span></button>`).join('')}</nav>
-  ${syncNote()}</div>`;
+  ${syncNote()}<p class="muted" style="font-size:11px;text-align:center;margin:0">Versión ${APP_VERSION}</p></div>`;
 }
 function syncNote(){return S.mode==='db'?'':(S.mode==='gh'?`<div class="row" style="justify-content:center">${syncBadge(true)}</div>`:`<p class="muted" style="font-size:12px;text-align:center;margin:0">Los datos se guardan solo en este navegador. Conecta GitHub o usa «Copia de seguridad» para no perderlos.</p>`)}
 
@@ -728,6 +729,7 @@ function viewDatos(){
   return `<div class="page">${ghCard()}<section class="card"><h2>Excel</h2><p class="sub">Genera un .xlsx con jugadores en filas y partidos en columnas, con las mismas fórmulas de medias y porcentajes que tu hoja.</p><button class="btn" data-act="excel">${ic('down')} Descargar Excel</button></section>
   <section class="card"><h2>Copia de seguridad</h2><p class="sub">Guarda todos los datos (plantilla, minutos y cambios) en un archivo, o restaura una copia anterior. Restaurar sustituye los datos actuales.</p>
    <div class="row"><button class="btn" data-act="backup">${ic('shield')} Guardar copia</button><label class="btn ghost" for="restore" style="cursor:pointer">${ic('up')} Restaurar copia</label><input id="restore" type="file" accept="application/json,.json" class="sr" data-bind="restore"></div></section>
+  <section class="card"><h2>Versión</h2><p class="sub" style="margin:0">${APP_VERSION}</p></section>
   <section class="card"><h2>Almacenamiento</h2><p class="sub" style="margin:0">${S.mode==='db'?'Los datos se guardan en la nube y se sincronizan entre tus dispositivos.':S.mode==='gh'?'Los datos se guardan en GitHub y en una copia local de este dispositivo. Si trabajas sin conexión, los cambios se suben al volver.':'Los datos se guardan solo en este navegador. Conecta GitHub o haz copias de seguridad con frecuencia.'}</p></section></div>`;
 }
 
