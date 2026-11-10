@@ -188,6 +188,7 @@ table.rk tr.hl td:first-child{border-radius:8px 0 0 8px}table.rk tr.hl td:last-c
 .two-tables{display:grid;grid-template-columns:1fr;gap:16px}
 @media(min-width:960px){.two-tables{grid-template-columns:1fr 1fr}.two-tables .only-narrow{display:none}.two-tables>.card{display:block!important}}
 .two-tables>.card.hide{display:none}
+@media(min-width:960px){.medias-tabs{display:none}}
 .two-tables>*,.page>*{min-width:0}
 @media(max-width:560px){th,td{padding-left:4px;padding-right:4px}.rank{width:26px}td.name{min-width:84px}.barcell{display:none}.calrow .tx b{font-size:16px}.calrow .tm img{width:30px;height:30px}}
 
@@ -273,7 +274,7 @@ const TEAMS = {
 const KEY = {'NASTIC TARRAGONA':'nastic','MERCANTIL':'mercantil','DAMM':'damm','GIRONA':'girona','SEGRE':'segre','HOSPITALET':'hospitalet','IGUALADA':'igualada','BARÇA':'barca','CORNELLÀ':'cornella','VIC':'vic','REUS':'reus','NASTIC MANRESA':'manresa','SANT JUST':'santjust','ESPANYOL':'espanyol','MASNOU':'masnou'};
 const FIX = HEADS.map((head,i)=>{const [a,b]=head.split(' - ').map(s=>s.trim());const home=a==='SC';return {j:i+1,home,rival:KEY[home?b:a],head,date:DATES[i]}});
 const FJ = {}; FIX.forEach(f=>FJ[f.j]=f);
-const APP_VERSION='10/11 08:15';
+const APP_VERSION='10/11 10:29';
 const MIN=70, HALF=35, TEAM_TOTAL=11*70;
 const pad2=n=>String(n).padStart(2,'0');
 const crest=k=>'data:image/webp;base64,'+CRESTS[k];
@@ -606,7 +607,7 @@ function rankTable(kind){
 function viewMedias(){
   const N=playedJs().length;const t=ui.medias.tab;
   return `<div class="page"><div class="row"><span class="pill acc">${N} partidos jugados</span><span class="muted" style="font-size:13px">Ordenado de mayor a menor media</span></div>
-  <div class="stick"><div class="seg only-narrow-seg" style="max-width:520px"><button data-act="mtab" data-t="conv" aria-pressed="${t==='conv'}">Sobre convocatorias</button><button data-act="mtab" data-t="total" aria-pressed="${t==='total'}">Sobre partidos totales</button></div></div>
+  <div class="stick medias-tabs"><div class="seg only-narrow-seg" style="max-width:520px"><button data-act="mtab" data-t="conv" aria-pressed="${t==='conv'}">Sobre convocatorias</button><button data-act="mtab" data-t="total" aria-pressed="${t==='total'}">Sobre partidos totales</button></div></div>
   <div class="two-tables"><section class="card ${t==='conv'?'':'hide'}"><h2>Media sobre convocatorias</h2><p class="sub">Minutos jugados ÷ partidos en los que el jugador estaba convocado. No cuenta los partidos en los que no fue convocado.</p>${rankTable('conv')}</section>
   <section class="card ${t==='total'?'':'hide'}"><h2>Media sobre partidos totales</h2><p class="sub">Minutos jugados ÷ partidos disputados por el equipo (${N}).</p>${rankTable('total')}</section></div></div>`;
 }
