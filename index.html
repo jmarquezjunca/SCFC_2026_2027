@@ -162,6 +162,7 @@ input[type=number]{-moz-appearance:textfield}
 .ev .when{font-family:var(--font-display);font-weight:700;font-size:20px;min-width:74px;line-height:1.1}
 .ev .when small{display:block;font-family:var(--font-body);font-weight:500;font-size:12px;color:var(--ink-2)}
 .ev .who{flex:1;min-width:0;font-size:14px}
+.ev.editing{background:var(--accent-soft);border-radius:12px;padding-inline:8px}
 .ev .who .o{color:var(--bad);font-weight:600}.ev .who .i{color:var(--good);font-weight:600}
 
 /* tables */
@@ -274,7 +275,7 @@ const TEAMS = {
 const KEY = {'NASTIC TARRAGONA':'nastic','MERCANTIL':'mercantil','DAMM':'damm','GIRONA':'girona','SEGRE':'segre','HOSPITALET':'hospitalet','IGUALADA':'igualada','BARÇA':'barca','CORNELLÀ':'cornella','VIC':'vic','REUS':'reus','NASTIC MANRESA':'manresa','SANT JUST':'santjust','ESPANYOL':'espanyol','MASNOU':'masnou'};
 const FIX = HEADS.map((head,i)=>{const [a,b]=head.split(' - ').map(s=>s.trim());const home=a==='SC';return {j:i+1,home,rival:KEY[home?b:a],head,date:DATES[i]}});
 const FJ = {}; FIX.forEach(f=>FJ[f.j]=f);
-const APP_VERSION='10/11 10:29';
+const APP_VERSION='10/11 22:14';
 const MIN=70, HALF=35, TEAM_TOTAL=11*70;
 const pad2=n=>String(n).padStart(2,'0');
 const crest=k=>'data:image/webp;base64,'+CRESTS[k];
@@ -304,7 +305,7 @@ const ic=(n,cls='')=>`<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="tr
 
 /* ====================== ESTADO ====================== */
 const S={players:[],matches:{},meta:{playersAt:0,deleted:{}},ready:false,slow:false,mode:'local',canWrite:true};
-const ui={gh:(()=>{const g={owner:'',repo:'',token:'',path:'data.json'};try{if(/\.github\.io$/.test(location.hostname)){g.owner=location.hostname.split('.')[0];g.repo=location.pathname.split('/')[1]||''}}catch(e){}return g})(),view:'inicio',live:{j:null,form:{half:1,min:'',out:[],inn:[]},open:false,prov:false},
+const ui={gh:(()=>{const g={owner:'',repo:'',token:'',path:'data.json'};try{if(/\.github\.io$/.test(location.hostname)){g.owner=location.hostname.split('.')[0];g.repo=location.pathname.split('/')[1]||''}}catch(e){}return g})(),view:'inicio',live:{j:null,form:{half:1,min:'',out:[],inn:[]},open:false,prov:false,edit:null},
   manual:{j:null,draft:null,loaded:null},charts:{tab:'partido',sel:null,slot:{},basis:'total'},medias:{tab:'conv'},cal:{filter:'all'},sheet:null,toast:null};
 const VIEWS=['inicio','partido','calendario','medias','graficos','manual','plantilla','datos'];
 const TITLES={inicio:'Sant Cugat FC',partido:'Registrar partido',calendario:'Calendario',medias:'Medias',graficos:'Gráficos',manual:'Minutos manuales',plantilla:'Plantilla',datos:'Datos y copias'};
@@ -549,17 +550,19 @@ function viewPartido(){
 function eventTimeLabel(e){return `${e.h}ª parte · ${e.m}'`}
 function eventsList(m){
   if(!(m.events||[]).length)return `<p class="muted" style="margin:0;font-size:14px">Aún no hay cambios. Si no registras ninguno, todos los convocados jugarán 70'.</p>`;
-  return sortedEvents(m.events).map(e=>`<div class="ev"><div class="when">${eventTimeLabel(e)}<small>min. ${e.t} del partido</small></div><div class="who">${(e.inn||[]).length?`<div><span class="i">Entra:</span> ${e.inn.map(id=>esc(pById(id)?.name||id)).join(', ')}</div>`:''}${(e.out||[]).length?`<div><span class="o">Sale:</span> ${e.out.map(id=>esc(pById(id)?.name||id)).join(', ')}</div>`:''}</div><button class="iconbtn" style="width:40px;height:40px" data-act="delev" data-i="${e.i}" aria-label="Borrar cambio">${ic('trash')}</button></div>`).join('');
+  return sortedEvents(m.events).map(e=>`<div class="ev ${ui.live.open&&ui.live.edit===e.i?'editing':''}"><div class="when">${eventTimeLabel(e)}<small>min. ${e.t} del partido</small></div><div class="who">${(e.inn||[]).length?`<div><span class="i">Entra:</span> ${e.inn.map(id=>esc(pById(id)?.name||id)).join(', ')}</div>`:''}${(e.out||[]).length?`<div><span class="o">Sale:</span> ${e.out.map(id=>esc(pById(id)?.name||id)).join(', ')}</div>`:''}</div><button class="iconbtn" style="width:40px;height:40px" data-act="editev" data-i="${e.i}" aria-label="Modificar cambio">${ic('pen')}</button><button class="iconbtn" style="width:40px;height:40px" data-act="delev" data-i="${e.i}" aria-label="Borrar cambio">${ic('trash')}</button></div>`).join('');
 }
 function canOut(m,pid,t){const tl=timelineOf(m.events||[],pid).filter(x=>x.t<=t);return !tl.length||tl[tl.length-1].type==='in'}
 function canIn(m,pid,t){const tl=timelineOf(m.events||[],pid).filter(x=>x.t<=t);return !tl.length||tl[tl.length-1].type==='out'}
+function effM(m){return {...m,events:(m.events||[]).filter((e,i)=>i!==ui.live.edit)}}
 function changeForm(m){
-  const F=ui.live.form;const hasMin=F.min!==''&&F.min!=null;const t=hasMin?(F.half===1?F.min:HALF+F.min):null;
+  const F=ui.live.form;const editing=ui.live.edit!=null;if(editing)m=effM(m);const hasMin=F.min!==''&&F.min!=null;const t=hasMin?(F.half===1?F.min:HALF+F.min):null;
   const list=activeConv(m);
   const mk=(kind)=>list.map(p=>{const sel=(kind==='out'?F.out:F.inn).includes(p.id);const other=(kind==='out'?F.inn:F.out).includes(p.id);
     const ok=t==null?true:(kind==='out'?canOut(m,p.id,t):canIn(m,p.id,t));
     return `<button class="chip ${kind} ${sel?'sel':''}" data-act="pickp" data-k="${kind}" data-id="${p.id}" ${(!ok||other)?'disabled':''} aria-pressed="${sel}"><span class="n">${p.num??''}</span><span class="nm">${esc(p.name)}</span></button>`}).join('');
   return `<div class="card" style="background:var(--surface-2);border:0">
+   ${editing?'<div class="note warn" style="margin-bottom:12px">Estás modificando un cambio ya guardado. Pulsa «Guardar modificación» para aplicarlo.</div>':''}
    <div class="seg" role="group" aria-label="Parte"><button data-act="half" data-h="1" aria-pressed="${F.half===1}">1ª parte</button><button data-act="half" data-h="2" aria-pressed="${F.half===2}">2ª parte</button></div>
    <div class="row" style="margin:14px 0 6px"><span class="lbl">Minuto</span><span class="spacer"></span><span id="fpill" class="pill ${hasMin?'acc':'warn'}">${hasMin?'Minuto '+t+' del partido':'Indica el minuto'}</span></div>
    <div class="stepper"><button data-act="step" data-d="-1" aria-label="Un minuto menos">${ic('minus')}</button><input id="fmin" type="number" inputmode="numeric" min="0" max="35" value="${F.min}" placeholder="min" data-bind="fmin" aria-label="Minuto de la parte"><button data-act="step" data-d="1" aria-label="Un minuto más">${ic('plus')}</button>
@@ -567,7 +570,7 @@ function changeForm(m){
    <div class="two" style="margin-top:14px"><div><div class="lbl" style="margin-bottom:8px">Entran (${F.inn.length})</div><div class="chips" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${mk('inn')}</div></div>
    <div><div class="lbl" style="margin-bottom:8px">Salen (${F.out.length})</div><div class="chips" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${mk('out')}</div></div></div>
    ${F.out.length!==F.inn.length&&(F.out.length||F.inn.length)?`<div class="note warn" style="margin-top:12px">Salen ${F.out.length} y entran ${F.inn.length}. Puedes guardarlo igualmente.</div>`:''}
-   <div class="row" style="margin-top:14px"><button class="btn" data-act="savechange" ${hasMin&&(F.out.length||F.inn.length)?'':'disabled'}>${ic('check')} Guardar cambio</button><button class="btn ghost" data-act="cancelchange">Cancelar</button></div></div>`;
+   <div class="row" style="margin-top:14px"><button class="btn" data-act="savechange" ${hasMin&&(F.out.length||F.inn.length)?'':'disabled'}>${ic('check')} ${editing?'Guardar modificación':'Guardar cambio'}</button><button class="btn ghost" data-act="cancelchange">Cancelar</button></div></div>`;
 }
 function playedSummary(j){
   const m=mat(j);const mins=m.minutes||{};const tot=sumOf(mins);
@@ -763,7 +766,7 @@ const A={
  veil:(t,e)=>{if(e.target===t){ui.sheet=null;render()}},
  closesheet:()=>{ui.sheet=null;render()},
  seed:()=>{Store.savePlayers(clone(SEED.players));Object.values(SEED.matches).forEach(m=>Store.saveMatch(m));toast('Datos cargados')},
- openlive:t=>{ui.live.j=+t.dataset.j;ui.live.open=false;ui.live.form={half:1,min:'',out:[],inn:[]};ui.sheet=null;go('partido')},
+ openlive:t=>{ui.live.j=+t.dataset.j;ui.live.open=false;ui.live.edit=null;ui.live.form={half:1,min:'',out:[],inn:[]};ui.sheet=null;go('partido')},
  picker:()=>{ui.sheet={type:'picker'};render()},
  pickj:t=>{ui.live.j=+t.dataset.j;ui.sheet=null;ui.live.open=false;render()},
  calsheet:t=>{ui.sheet={type:'cal',j:+t.dataset.j};render()},
@@ -771,17 +774,20 @@ const A={
  cyc:t=>{const j=liveJ(),m=getLive(j),id=t.dataset.id;const cur=convOf(m,id);
    if(cur==='c'&&((m.events||[]).some(e=>(e.out||[]).includes(id)||(e.inn||[]).includes(id)))){toast('Tiene cambios registrados: bórralos antes de desconvocarle.');return}
    const nx={c:'d',d:'n',n:'c'}[cur];m.conv=m.conv||{};if(nx==='c')delete m.conv[id];else m.conv[id]=nx;setLive(m);render()},
- newchange:()=>{ui.live.open=true;ui.live.form.out=[];ui.live.form.inn=[];ui.live.form.min='';render()},
- cancelchange:()=>{ui.live.open=false;render()},
+ editev:t=>{const j=liveJ(),m=getLive(j),i=+t.dataset.i,e=(m.events||[])[i];if(!e)return;ui.live.edit=i;ui.live.open=true;ui.live.form={half:e.h,min:e.m,out:[...(e.out||[])],inn:[...(e.inn||[])]};render();setTimeout(()=>{const f=document.getElementById('fmin');if(f)f.scrollIntoView({block:'center',behavior:'smooth'})},60)},
+ newchange:()=>{ui.live.open=true;ui.live.edit=null;ui.live.form.out=[];ui.live.form.inn=[];ui.live.form.min='';render()},
+ cancelchange:()=>{ui.live.open=false;ui.live.edit=null;render()},
  half:t=>{ui.live.form.half=+t.dataset.h;render()},
  step:t=>{const F=ui.live.form;F.min=Math.max(0,Math.min(HALF,(+F.min||0)+(+t.dataset.d)));pruneForm();render()},
  pickp:t=>{const F=ui.live.form,id=t.dataset.id,k=t.dataset.k;const arr=F[k];const i=arr.indexOf(id);if(i>=0)arr.splice(i,1);else arr.push(id);render()},
  savechange:()=>{const F=ui.live.form,j=liveJ(),m=getLive(j);if(F.min===''||F.min==null){toast('Indica el minuto del cambio.');return}
    const ev={h:F.half,m:Math.max(0,Math.min(HALF,+F.min||0)),out:[...F.out],inn:[...F.inn]};
-   const test=[...(m.events||[]),ev];
-   for(const id of [...ev.out,...ev.inn]){if(!timelineValid(timelineOf(test,id))){toast(`${pById(id)?.name||'Un jugador'} no puede salir o entrar en ese minuto.`);return}}
-   m.events=test;setLive(m);ui.live.open=false;F.out=[];F.inn=[];toast('Cambio guardado');render()},
- delev:t=>{const j=liveJ(),m=getLive(j);m.events=(m.events||[]).filter((e,i)=>i!==+t.dataset.i);setLive(m);render()},
+   const ei=ui.live.edit,old=ei!=null?(m.events||[])[ei]:null;
+   const test=[...(m.events||[])];if(old)test[ei]=ev;else test.push(ev);
+   const ids=new Set([...ev.out,...ev.inn,...(old?[...(old.out||[]),...(old.inn||[])]:[])]);
+   for(const id of ids){if(!timelineValid(timelineOf(test,id))){toast(`${pById(id)?.name||'Un jugador'} no puede salir o entrar en ese minuto.`);return}}
+   m.events=test;setLive(m);ui.live.open=false;ui.live.edit=null;F.out=[];F.inn=[];toast(old?'Cambio modificado':'Cambio guardado');render()},
+ delev:t=>{const j=liveJ(),m=getLive(j);const di=+t.dataset.i;m.events=(m.events||[]).filter((e,i)=>i!==di);setLive(m);if(ui.live.edit!=null){if(ui.live.edit===di){ui.live.open=false;ui.live.edit=null}else if(ui.live.edit>di)ui.live.edit--}render()},
  toggleprov:()=>{ui.live.prov=!ui.live.prov;render()},
  finish:()=>{ui.sheet={type:'finish'};render()},
  confirmfinish:()=>{const j=liveJ(),m=getLive(j);const mins=computeMinutes(m);
@@ -841,7 +847,7 @@ async function ghFinish(c){
     if(remHas&&hasLocal)ask('Ya hay datos en GitHub y en este dispositivo','Se usarán los de GitHub y los de este dispositivo se sustituirán. Si quieres conservarlos, guarda antes una copia de seguridad.','Usar los de GitHub',go,true);
     else await go();
   }catch(e){toast(ghMsg(e))}}
-function pruneForm(){const F=ui.live.form,j=liveJ(),m=getLive(j);if(F.min===''||F.min==null)return;const t=F.half===1?F.min:HALF+F.min;F.out=F.out.filter(id=>canOut(m,id,t));F.inn=F.inn.filter(id=>canIn(m,id,t))}
+function pruneForm(){const F=ui.live.form,j=liveJ();let m=getLive(j);if(ui.live.edit!=null)m=effM(m);if(F.min===''||F.min==null)return;const t=F.half===1?F.min:HALF+F.min;F.out=F.out.filter(id=>canOut(m,id,t));F.inn=F.inn.filter(id=>canIn(m,id,t))}
 
 document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t)return;const a=A[t.dataset.act];if(a){e.preventDefault();a(t,e)}});
 document.addEventListener('input',e=>{const t=e.target;if(!t.dataset||!t.dataset.bind)return;
